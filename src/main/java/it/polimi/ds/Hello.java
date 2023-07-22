@@ -1,4 +1,4 @@
-package example.hello;
+package it.polimi.ds;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

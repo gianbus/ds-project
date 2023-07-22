@@ -1,5 +1,6 @@
-package example.hello;
+package it.polimi.ds.client;
 
+import it.polimi.ds;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 

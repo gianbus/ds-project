@@ -1,5 +1,6 @@
-package example.hello;
-        
+package it.polimi.ds.server;
+
+import it.polimi.ds;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
