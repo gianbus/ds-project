@@ -1,8 +1,9 @@
 package it.polimi.ds.server;
 
-import it.polimi.ds;
+import it.polimi.ds.Hello;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.server.ServerNotActiveException;
 import java.rmi.server.UnicastRemoteObject;
         
 public class Server implements Hello {
@@ -10,7 +11,11 @@ public class Server implements Hello {
     public Server() {}
 
     public String sayHello() {
-        return "Hello, world!";
+        try {
+            return UnicastRemoteObject.getClientHost();
+        } catch (ServerNotActiveException e) {
+            return "Hello world";
+        }
     }
         
     public static void main(String args[]) {
