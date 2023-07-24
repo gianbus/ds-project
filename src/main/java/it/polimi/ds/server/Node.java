@@ -21,12 +21,12 @@ public class Node implements Replica {
     private final HashMap<String, Transaction> transactionsById = new HashMap<>();
     private final HashMap<String, Transaction> transactionsByKey = new HashMap<>();
 
-    private synchronized void recordTransaction(Transaction t){
+    private void recordTransaction(Transaction t){
             this.transactionsById.put(t.getTransactionID(), t);
             this.transactionsByKey.put(t.getKey(), t);
     }
 
-    private synchronized void removeTransaction(String transactionID){
+    private void removeTransaction(String transactionID){
             Transaction t = this.transactionsById.get(transactionID);
             this.transactionsById.remove(transactionID);
             this.transactionsByKey.remove(t.getKey());
@@ -60,7 +60,7 @@ public class Node implements Replica {
 
     }
 
-    public void Abort(String transactionID){
+    public synchronized void Abort(String transactionID){
         removeTransaction(transactionID);
     }
         

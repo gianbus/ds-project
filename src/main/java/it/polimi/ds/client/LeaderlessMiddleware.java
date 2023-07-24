@@ -53,9 +53,10 @@ public class LeaderlessMiddleware implements Middleware {
         ExecutorService pool = Executors.newFixedThreadPool(this.w);
         Future<VoteMessage>[] futures = new Future[this.w];
 
+        int[] shuffleArray = generateShuffleArray(this.stubs.length, this.w);
         // -> send prepare to selected replicas
-        for (int i : generateShuffleArray(this.stubs.length, this.w)) {
-            futures[i] = pool.submit(this.prepare(this.stubs[i], k, value));
+        for (int i; i < this.w; i++) {
+            futures[i] = pool.submit(this.prepare(this.stubs[shuffleArray[i]], k, value));
         }
 
         // <- wait for votes
@@ -70,9 +71,9 @@ public class LeaderlessMiddleware implements Middleware {
 
         // -> send global decision to replicas
         for (int i = 0; i < this.w; i++) {
-            futures[i] = pool.submit(globalVote(this.stubs[i], result, transactionIDs[i]));
+            futures[i] = pool.submit(globalVote(this.stubs[shuffleArray[i]], result, transactionIDs[i]));
         }
-
+    
         // <- wait for ack
         for (int i = 0; i < this.w; i++) {
             futures[i].get();
