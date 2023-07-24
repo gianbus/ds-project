@@ -21,43 +21,54 @@ public class Node implements Replica {
     private final HashMap<String, Transaction> transactionsById = new HashMap<>();
     private final HashMap<String, Transaction> transactionsByKey = new HashMap<>();
 
-    private void recordTransaction(Transaction t){
-            this.transactionsById.put(t.getTransactionID(), t);
-            this.transactionsByKey.put(t.getKey(), t);
+    private synchronized void recordTransaction(Transaction t){
+        this.transactionsById.put(t.getTransactionID(), t);
+        this.transactionsByKey.put(t.getKey(), t);
     }
 
-    private void removeTransaction(String transactionID){
-            Transaction t = this.transactionsById.get(transactionID);
+    private synchronized void removeTransaction(String transactionID){
+        Transaction t = this.transactionsById.get(transactionID);
+        if (t != null) {
             this.transactionsById.remove(transactionID);
             this.transactionsByKey.remove(t.getKey());
+        }
     }
     
     public synchronized Value Read(String key){
-            return data.get(key);
+        if (key == null) {
+            throw new IllegalArgumentException();
+        }
+        return data.get(key);
     }
 
     public synchronized VoteMessage Prepare(String key, Value value){
+        if (key == null || value == null) {
+            throw new IllegalArgumentException();
+        }
 
         String transactionID = UUID.randomUUID().toString();
+        while (this.transactionsById.containsKey(transactionID)) {
+            transactionID = UUID.randomUUID().toString();
+        }
         Transaction t = new Transaction(transactionID ,key, value);
 
-            Value actualValue = data.get(key);
-            if(transactionsByKey.get(key) == null){
-                if (value.getVersion().greaterThan(actualValue.getVersion())) {
-                    recordTransaction(t);
-                    return new VoteMessage(COMMIT, transactionID);
-                }
+        Value currentValue = data.get(key);
+        if(transactionsByKey.get(key) == null){
+            if (currentValue == null || value.getVersioning().greaterThan(currentValue.getVersioning())) {
+                recordTransaction(t);
+                return new VoteMessage(COMMIT, transactionID);
             }
+        }
 
         return new VoteMessage(ABORT, transactionID);
     }
 
     public synchronized void Commit(String transactionID){
-
-            Transaction t = this.transactionsById.get(transactionID);
+        Transaction t = this.transactionsById.get(transactionID);
+        if (t != null) {
             data.put(t.getKey(), t.getValue());
             removeTransaction(transactionID);
-
+        }
     }
 
     public synchronized void Abort(String transactionID){

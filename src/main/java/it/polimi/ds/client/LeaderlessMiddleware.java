@@ -6,9 +6,7 @@ import it.polimi.ds.rmi.VoteMessage;
 
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,8 +20,8 @@ public class LeaderlessMiddleware implements Middleware {
     private final int r;
     private final int w;
 
-    public LeaderlessMiddleware(StubInfo[] stubInfos, int r, int w) throws Exception {
-        int n = stubInfos.length;
+    public LeaderlessMiddleware(Connector connector, RemoteInfo[] remoteInfos, int r, int w) throws Exception {
+        int n = remoteInfos.length;
         if (2 * w <= n) {
             throw new RuntimeException("invalid w quorum");
         }
@@ -32,8 +30,7 @@ public class LeaderlessMiddleware implements Middleware {
         }
         this.stubs = new Replica[n];
         for (int i = 0; i < n; i++) {
-            Registry registry = LocateRegistry.getRegistry(stubInfos[i].getHost());
-            this.stubs[i] = (Replica) registry.lookup(stubInfos[i].getRegistryName());
+            this.stubs[i] = connector.Connect(remoteInfos[i]);
         }
         this.r = r;
         this.w = w;
@@ -41,25 +38,31 @@ public class LeaderlessMiddleware implements Middleware {
 
     @Override
     public String Get(String k) throws Exception {
-        return this.read(k).getValue();
+        Value value = this.read(k);
+        if (value == null) {
+            return null;
+        }
+        return value.getValue();
     }
 
     @Override
-    public void Put(String k, String v) throws Exception {
-        Value.Version version = new Value.Version(this.read(k).getVersion().getVersion() + 1);
-        final Value value = new Value(version, v);
+    public boolean Put(String k, String v) throws Exception {
+        Value currentValue = this.read(k);
+        long versionNumber = currentValue == null ? 1 : currentValue.getVersioning().getVersion() + 1;
+        Value.Versioning versioning = new Value.Versioning(versionNumber);
+        final Value value = new Value(versioning, v);
 
-        VoteMessage.MessageType result = COMMIT;
         ExecutorService pool = Executors.newFixedThreadPool(this.w);
         Future<VoteMessage>[] futures = new Future[this.w];
 
         int[] shuffleArray = generateShuffleArray(this.stubs.length, this.w);
         // -> send prepare to selected replicas
-        for (int i; i < this.w; i++) {
+        for (int i = 0; i < this.w; i++) {
             futures[i] = pool.submit(this.prepare(this.stubs[shuffleArray[i]], k, value));
         }
 
         // <- wait for votes
+        VoteMessage.MessageType result = COMMIT;
         String[] transactionIDs = new String[this.w];
         for (int i = 0; i < this.w; i++) {
             VoteMessage vote = futures[i].get();
@@ -73,23 +76,38 @@ public class LeaderlessMiddleware implements Middleware {
         for (int i = 0; i < this.w; i++) {
             futures[i] = pool.submit(globalVote(this.stubs[shuffleArray[i]], result, transactionIDs[i]));
         }
-    
+
         // <- wait for ack
         for (int i = 0; i < this.w; i++) {
             futures[i].get();
         }
+
+        return result == COMMIT;
     }
 
-    private Value read(String key) throws Exception {
-        Value mostRecent = null;
+    private Value read(String k) throws Exception {
+        ExecutorService pool = Executors.newFixedThreadPool(this.r);
+        Future<Value>[] futures = new Future[this.r];
+        int[] shuffleArray = generateShuffleArray(this.stubs.length, this.w);
+        // -> send read
+        for (int i = 0; i < this.r; i++) {
+            futures[i] = pool.submit(this.read(this.stubs[shuffleArray[i]], k));
+        }
 
-        for (int i : generateShuffleArray(this.stubs.length, this.r)) {
-            Value value = this.stubs[i].Read(key);
-            if (mostRecent == null || value.getVersion().greaterThan(mostRecent.getVersion())) {
+        Value mostRecent = null;
+        // <- wait for results
+        for (int i = 0; i < this.r; i++) {
+            Value value = futures[i].get();
+            if (mostRecent == null || (value != null &&
+                    value.getVersioning().greaterThan(mostRecent.getVersioning()))) {
                 mostRecent = value;
             }
         }
         return mostRecent;
+    }
+
+    private Callable<Value> read(Replica stub, String key) {
+        return () -> stub.Read(key);
     }
 
     private Callable<VoteMessage> prepare(Replica stub, String key, Value value) {

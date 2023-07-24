@@ -6,8 +6,8 @@ public class Client {
     public static void main(String[] args) {
         try {
             // TODO : set appropriate values
-            Middleware middleware = new LeaderlessMiddleware(null, 0, 0);
-            middleware.Get("a");
+            Middleware middleware = new LeaderlessMiddleware(new DefaultConnector(), null, 0, 0);
+            String v = middleware.Get("a");
             middleware.Put("b", "hello");
         } catch (Exception e) {
             e.printStackTrace();

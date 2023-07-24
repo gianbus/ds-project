@@ -4,16 +4,16 @@ import java.util.Date;
 
 public class Value {
     
-    public static class Version {
+    public static class Versioning {
         private final long version;
         private final long timestamp;
 
-        public Version(long version) {
+        public Versioning(long version) {
             this.version = version;
             this.timestamp = new Date().getTime();
         }
 
-        public boolean greaterThan(Version other) {
+        public boolean greaterThan(Versioning other) {
             if (this.version == other.version) {
                 return this.timestamp > other.timestamp;
             }
@@ -29,16 +29,16 @@ public class Value {
         }
     }
 
-    private final Version version;
+    private final Versioning versioning;
     private final String value;
 
-    public Value(Version version, String value) {
-        this.version = version;
+    public Value(Versioning versioning, String value) {
+        this.versioning = versioning;
         this.value = value;
     }
 
-    public Version getVersion() {
-        return this.version;
+    public Versioning getVersioning() {
+        return this.versioning;
     }
 
     public String getValue() {

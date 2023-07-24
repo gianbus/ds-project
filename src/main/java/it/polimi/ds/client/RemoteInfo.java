@@ -1,10 +1,10 @@
 package it.polimi.ds.client;
 
-public class StubInfo {
+public class RemoteInfo {
     private final String host;
     private final String registryName;
 
-    public StubInfo(String host, String registryName) {
+    public RemoteInfo(String host, String registryName) {
         this.host = host;
         this.registryName = registryName;
     }
