@@ -21,33 +21,26 @@ public class Node implements Replica {
     private final HashMap<String, Transaction> transactionsById = new HashMap<>();
     private final HashMap<String, Transaction> transactionsByKey = new HashMap<>();
 
-    private void recordTransaction(Transaction t){
-        synchronized(this){
+    private synchronized void recordTransaction(Transaction t){
             this.transactionsById.put(t.getTransactionID(), t);
             this.transactionsByKey.put(t.getKey(), t);
-        }
     }
 
-    private void removeTransaction(String transactionID){
-        synchronized(this){
+    private synchronized void removeTransaction(String transactionID){
             Transaction t = this.transactionsById.get(transactionID);
             this.transactionsById.remove(transactionID);
             this.transactionsByKey.remove(t.getKey());
-        }
     }
     
-    public Value Read(String key){
-        synchronized(this.data){
+    public synchronized Value Read(String key){
             return data.get(key);
-        }
     }
 
-    public VoteMessage Prepare(String key, Value value){
+    public synchronized VoteMessage Prepare(String key, Value value){
 
         String transactionID = UUID.randomUUID().toString();
         Transaction t = new Transaction(transactionID ,key, value);
 
-        synchronized(this){
             Value actualValue = data.get(key);
             if(transactionsByKey.get(key) == null){
                 if (value.getVersion().greaterThan(actualValue.getVersion())) {
@@ -55,18 +48,15 @@ public class Node implements Replica {
                     return new VoteMessage(COMMIT, transactionID);
                 }
             }
-        }
 
         return new VoteMessage(ABORT, transactionID);
     }
 
-    public void Commit(String transactionID){
+    public synchronized void Commit(String transactionID){
 
-        synchronized(this){
             Transaction t = this.transactionsById.get(transactionID);
             data.put(t.getKey(), t.getValue());
             removeTransaction(transactionID);
-        }
 
     }
 

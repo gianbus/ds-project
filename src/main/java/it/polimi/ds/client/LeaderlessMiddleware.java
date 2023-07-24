@@ -6,6 +6,9 @@ import it.polimi.ds.rmi.VoteMessage;
 
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,9 +52,9 @@ public class LeaderlessMiddleware implements Middleware {
         VoteMessage.MessageType result = COMMIT;
         ExecutorService pool = Executors.newFixedThreadPool(this.w);
         Future<VoteMessage>[] futures = new Future[this.w];
-        // TODO : choose stubs better
+
         // -> send prepare to selected replicas
-        for (int i = 0; i < this.w; i++) {
+        for (int i : generateShuffleArray(this.stubs.length, this.w)) {
             futures[i] = pool.submit(this.prepare(this.stubs[i], k, value));
         }
 
@@ -78,8 +81,8 @@ public class LeaderlessMiddleware implements Middleware {
 
     private Value read(String key) throws Exception {
         Value mostRecent = null;
-        // TODO : choose stubs better
-        for (int i = 0; i < this.r; i++) {
+
+        for (int i : generateShuffleArray(this.stubs.length, this.r)) {
             Value value = this.stubs[i].Read(key);
             if (mostRecent == null || value.getVersion().greaterThan(mostRecent.getVersion())) {
                 mostRecent = value;
@@ -101,5 +104,19 @@ public class LeaderlessMiddleware implements Middleware {
             }
             return null;
         };
+    }
+
+    private int[] generateShuffleArray(int n, int wr) {
+        int[] array = new int[wr];
+        Set<Integer> chosenNumbers = new HashSet<>();
+        Random random = new Random();
+        int num, i = 0;
+        while (i < wr) {
+            num = random.nextInt(n);
+            if (chosenNumbers.add(num)) {
+                array[i++] = num;
+            }
+        }
+        return array;
     }
 }
