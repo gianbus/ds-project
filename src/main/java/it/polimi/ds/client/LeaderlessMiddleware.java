@@ -4,9 +4,8 @@ import it.polimi.ds.Value;
 import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.rmi.VoteMessage;
 
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,7 +15,7 @@ import static it.polimi.ds.rmi.VoteMessage.MessageType.ABORT;
 import static it.polimi.ds.rmi.VoteMessage.MessageType.COMMIT;
 
 public class LeaderlessMiddleware implements Middleware {
-    private final Replica[] stubs;
+    private final ArrayList<Replica> stubs;
     private final int r;
     private final int w;
 
@@ -28,9 +27,9 @@ public class LeaderlessMiddleware implements Middleware {
         if (r + w <= n) {
             throw new RuntimeException("invalid r+w quorum");
         }
-        this.stubs = new Replica[n];
-        for (int i = 0; i < n; i++) {
-            this.stubs[i] = connector.Connect(remoteInfos[i]);
+        this.stubs = new ArrayList<>(n);
+        for (RemoteInfo remoteInfo : remoteInfos) {
+            this.stubs.add(connector.Connect(remoteInfo));
         }
         this.r = r;
         this.w = w;
@@ -52,13 +51,13 @@ public class LeaderlessMiddleware implements Middleware {
         Value.Versioning versioning = new Value.Versioning(versionNumber);
         final Value value = new Value(versioning, v);
 
+        Collections.shuffle(this.stubs);
         ExecutorService pool = Executors.newFixedThreadPool(this.w);
         Future<VoteMessage>[] futures = new Future[this.w];
 
-        int[] shuffleArray = generateShuffleArray(this.stubs.length, this.w);
         // -> send prepare to selected replicas
         for (int i = 0; i < this.w; i++) {
-            futures[i] = pool.submit(this.prepare(this.stubs[shuffleArray[i]], k, value));
+            futures[i] = pool.submit(this.prepare(this.stubs.get(i), k, value));
         }
 
         // <- wait for votes
@@ -74,7 +73,7 @@ public class LeaderlessMiddleware implements Middleware {
 
         // -> send global decision to replicas
         for (int i = 0; i < this.w; i++) {
-            futures[i] = pool.submit(globalVote(this.stubs[shuffleArray[i]], result, transactionIDs[i]));
+            futures[i] = pool.submit(globalVote(this.stubs.get(i), result, transactionIDs[i]));
         }
 
         // <- wait for ack
@@ -86,28 +85,47 @@ public class LeaderlessMiddleware implements Middleware {
     }
 
     private Value read(String k) throws Exception {
+        Collections.shuffle(this.stubs);
         ExecutorService pool = Executors.newFixedThreadPool(this.r);
         Future<Value>[] futures = new Future[this.r];
-        int[] shuffleArray = generateShuffleArray(this.stubs.length, this.w);
         // -> send read
         for (int i = 0; i < this.r; i++) {
-            futures[i] = pool.submit(this.read(this.stubs[shuffleArray[i]], k));
+            futures[i] = pool.submit(this.read(this.stubs.get(i), k));
         }
 
+        Value[] values = new Value[this.r];
         Value mostRecent = null;
         // <- wait for results
         for (int i = 0; i < this.r; i++) {
-            Value value = futures[i].get();
-            if (mostRecent == null || (value != null &&
-                    value.getVersioning().greaterThan(mostRecent.getVersioning()))) {
-                mostRecent = value;
+            values[i] = futures[i].get();
+            if (mostRecent == null || (values[i] != null &&
+                    values[i].getVersioning().greaterThan(mostRecent.getVersioning()))) {
+                mostRecent = values[i];
             }
         }
+
+        if (mostRecent != null) {
+            // -> repair
+            for (int i = 0; i < this.r; i++) {
+                if (values[i] == null || mostRecent.getVersioning().greaterThan(values[i].getVersioning())) {
+                    pool.submit(this.repair(this.stubs.get(i), k, mostRecent));
+                }
+            }
+            // no need to wait for results
+        }
+
         return mostRecent;
     }
 
     private Callable<Value> read(Replica stub, String key) {
         return () -> stub.Read(key);
+    }
+
+    private Callable<Value> repair(Replica stub, String key, Value value) {
+        return () -> {
+            stub.Repair(key, value);
+            return null;
+        };
     }
 
     private Callable<VoteMessage> prepare(Replica stub, String key, Value value) {
@@ -123,19 +141,5 @@ public class LeaderlessMiddleware implements Middleware {
             }
             return null;
         };
-    }
-
-    private int[] generateShuffleArray(int n, int wr) {
-        int[] array = new int[wr];
-        Set<Integer> chosenNumbers = new HashSet<>();
-        Random random = new Random();
-        int num, i = 0;
-        while (i < wr) {
-            num = random.nextInt(n);
-            if (chosenNumbers.add(num)) {
-                array[i++] = num;
-            }
-        }
-        return array;
     }
 }

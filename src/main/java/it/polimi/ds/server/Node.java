@@ -5,6 +5,7 @@ import it.polimi.ds.Value;
 import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.rmi.VoteMessage;
 
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
@@ -33,7 +34,8 @@ public class Node implements Replica {
             this.transactionsByKey.remove(t.getKey());
         }
     }
-    
+
+    @Override
     public synchronized Value Read(String key){
         if (key == null) {
             throw new IllegalArgumentException();
@@ -41,6 +43,18 @@ public class Node implements Replica {
         return data.get(key);
     }
 
+    @Override
+    public synchronized void Repair(String key, Value value) throws RemoteException {
+        if (key == null || value == null) {
+            throw new IllegalArgumentException();
+        }
+        Value currentValue = data.get(key);
+        if (currentValue == null || value.getVersioning().greaterThan(currentValue.getVersioning())) {
+            data.put(key, value);
+        }
+    }
+
+    @Override
     public synchronized VoteMessage Prepare(String key, Value value){
         if (key == null || value == null) {
             throw new IllegalArgumentException();
@@ -63,6 +77,7 @@ public class Node implements Replica {
         return new VoteMessage(ABORT, transactionID);
     }
 
+    @Override
     public synchronized void Commit(String transactionID){
         Transaction t = this.transactionsById.get(transactionID);
         if (t != null) {
@@ -71,6 +86,7 @@ public class Node implements Replica {
         }
     }
 
+    @Override
     public synchronized void Abort(String transactionID){
         removeTransaction(transactionID);
     }
