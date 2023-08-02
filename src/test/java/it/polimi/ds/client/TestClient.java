@@ -47,14 +47,14 @@ public class TestClient {
             Thread thread1 = new Thread(() -> {
                 try {
                     if (middleware1.Put("x", "a")) {
-                        System.out.println("write(x, a) success");
+                        System.out.println("MW1: write(x, a) success");
                     } else {
-                        System.out.println("write(x, a) failed");
+                        System.out.println("MW1: write(x, a) failed");
                     }
                     if (middleware1.Put("y", "a")) {
-                        System.out.println("write(y, a) success");
+                        System.out.println("MW1: write(y, a) success");
                     } else {
-                        System.out.println("write(y, a) failed");
+                        System.out.println("MW1: write(y, a) failed");
                     }
                 } catch (Exception e) {
                     Assert.fail("unexpected exception: " + e.getMessage());
@@ -62,15 +62,15 @@ public class TestClient {
             });
             Thread thread2 = new Thread(() -> {
                 try {
-                    if (middleware1.Put("x", "b")) {
-                        System.out.println("write(x, b) success");
+                    if (middleware2.Put("x", "b")) {
+                        System.out.println("MW2: write(x, b) success");
                     } else {
-                        System.out.println("write(x, b) failed");
+                        System.out.println("MW2: write(x, b) failed");
                     }
-                    if (middleware1.Put("y", "b")) {
-                        System.out.println("write(y, b) success");
+                    if (middleware2.Put("y", "b")) {
+                        System.out.println("MW2: write(y, b) success");
                     } else {
-                        System.out.println("write(y, b) failed");
+                        System.out.println("MW2: write(y, b) failed");
                     }
                 } catch (Exception e) {
                     Assert.fail("unexpected exception: " + e.getMessage());
