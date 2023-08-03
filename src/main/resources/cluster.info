@@ -1,0 +1,17 @@
+{
+	"w": 3,
+	"r": 3,
+	"remoteInfos": [{
+			"host": "localhost",
+			"registryName": "myName1"
+		},
+		{
+			"host": "localhost",
+			"registryName": "myName2"
+		},
+		{
+			"host": "localhost",
+			"registryName": "myName3"
+		}
+	]
+}

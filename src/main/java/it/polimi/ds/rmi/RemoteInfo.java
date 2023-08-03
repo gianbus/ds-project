@@ -16,4 +16,10 @@ public class RemoteInfo {
     public String getRegistryName() {
         return registryName;
     }
+
+    //dummyConstructor
+    public RemoteInfo(){
+        this.host = "";
+        this.registryName = "";
+    }
 }

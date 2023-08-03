@@ -102,9 +102,15 @@ public class Node implements Replica {
         
     public static void main(String[] args) {
         try {
-            String registryName = (args.length < 1) ? null : args[0];
-            assert registryName != null : "You neeed to specify a registryName!";
-            Node node = new Node(null); // TODO : set appropriate values
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.setVisibilityChecker(VisibilityChecker.Std.defaultInstance().withFieldVisibility(JsonAutoDetect.Visibility.ANY));
+            
+            String configurationPath = (args.length < 1) ? null : args[0];
+            assert configurationPath != null : "You neeed to specify a configuration path!";
+            
+            ClusterInfo clusterInfo = mapper.readValue(new File(configurationPath), ClusterInfo.class);
+
+            Node node = new Node(clusterInfo);
             Replica stub = (Replica) UnicastRemoteObject.exportObject(node, 0);
 
             //Binding the stub

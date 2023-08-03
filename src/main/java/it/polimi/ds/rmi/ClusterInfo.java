@@ -22,4 +22,11 @@ public class ClusterInfo {
     public int getW() {
         return w;
     }
+
+    //dummyConstructor
+    public ClusterInfo(){
+        this.r = -1;
+        this.w = -1;
+        this.remoteInfos = null;
+    }
 }
