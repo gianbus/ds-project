@@ -1,5 +1,6 @@
 package it.polimi.ds.client;
 
+import it.polimi.ds.rmi.RemoteInfo;
 import it.polimi.ds.rmi.Replica;
 
 import java.util.HashMap;

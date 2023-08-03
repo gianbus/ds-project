@@ -1,6 +1,7 @@
 package it.polimi.ds.client;
 
 import it.polimi.ds.Value;
+import it.polimi.ds.rmi.RemoteInfo;
 import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.rmi.VoteMessage;
 

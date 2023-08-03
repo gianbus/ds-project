@@ -1,4 +1,4 @@
-package it.polimi.ds.client;
+package it.polimi.ds.rmi;
 
 public class RemoteInfo {
     private final String host;

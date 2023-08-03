@@ -2,6 +2,7 @@ package it.polimi.ds.server;
 
 import it.polimi.ds.Transaction;
 import it.polimi.ds.Value;
+import it.polimi.ds.rmi.ClusterInfo;
 import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.rmi.VoteMessage;
 
@@ -33,6 +34,12 @@ public class Node implements Replica {
             this.transactionsById.remove(transactionID);
             this.transactionsByKey.remove(t.getKey());
         }
+    }
+
+    @Override
+    public ClusterInfo GetClusterInfo() throws RemoteException {
+        // FIXME implement
+        return null;
     }
 
     @Override

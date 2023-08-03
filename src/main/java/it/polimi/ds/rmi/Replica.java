@@ -6,6 +6,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface Replica extends Remote {
+    ClusterInfo GetClusterInfo() throws RemoteException;
     Value Read(String key) throws RemoteException;
     void Repair(String key, Value value) throws RemoteException;
     VoteMessage Prepare(String key, Value value) throws RemoteException;
