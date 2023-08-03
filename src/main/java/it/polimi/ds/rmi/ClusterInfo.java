@@ -10,4 +10,16 @@ public class ClusterInfo {
         this.r = r;
         this.w = w;
     }
+
+    public RemoteInfo[] getRemoteInfos() {
+        return remoteInfos;
+    }
+
+    public int getR() {
+        return r;
+    }
+
+    public int getW() {
+        return w;
+    }
 }

@@ -17,11 +17,14 @@ import static it.polimi.ds.rmi.VoteMessage.MessageType.ABORT;
 import static it.polimi.ds.rmi.VoteMessage.MessageType.COMMIT;
 
 public class Node implements Replica {
-    public Node() {}
-
+    private final ClusterInfo clusterInfo;
     private final HashMap<String, Value> data = new HashMap<>();
     private final HashMap<String, Transaction> transactionsById = new HashMap<>();
     private final HashMap<String, Transaction> transactionsByKey = new HashMap<>();
+
+    public Node(ClusterInfo clusterInfo) {
+        this.clusterInfo = clusterInfo;
+    }
 
     private synchronized void recordTransaction(Transaction t){
         this.transactionsById.put(t.getTransactionID(), t);
@@ -38,8 +41,7 @@ public class Node implements Replica {
 
     @Override
     public ClusterInfo GetClusterInfo() throws RemoteException {
-        // FIXME implement
-        return null;
+        return this.clusterInfo;
     }
 
     @Override
@@ -102,7 +104,7 @@ public class Node implements Replica {
         try {
             String registryName = (args.length < 1) ? null : args[0];
             assert registryName != null : "You neeed to specify a registryName!";
-            Node node = new Node();
+            Node node = new Node(null); // TODO : set appropriate values
             Replica stub = (Replica) UnicastRemoteObject.exportObject(node, 0);
 
             //Binding the stub

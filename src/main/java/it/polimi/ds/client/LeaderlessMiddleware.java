@@ -1,6 +1,7 @@
 package it.polimi.ds.client;
 
 import it.polimi.ds.Value;
+import it.polimi.ds.rmi.ClusterInfo;
 import it.polimi.ds.rmi.RemoteInfo;
 import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.rmi.VoteMessage;
@@ -11,29 +12,32 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 
 import static it.polimi.ds.rmi.VoteMessage.MessageType.ABORT;
 import static it.polimi.ds.rmi.VoteMessage.MessageType.COMMIT;
 
 public class LeaderlessMiddleware implements Middleware {
+    private final Function<Integer, ExecutorService> poolFactory;
     private final ArrayList<Replica> stubs;
     private final int r;
     private final int w;
 
-    public LeaderlessMiddleware(Connector connector, RemoteInfo[] remoteInfos, int r, int w) throws Exception {
-        int n = remoteInfos.length;
-        if (2 * w <= n) {
-            throw new RuntimeException("invalid w quorum");
-        }
-        if (r + w <= n) {
-            throw new RuntimeException("invalid r+w quorum");
-        }
-        this.stubs = new ArrayList<>(n);
+    public LeaderlessMiddleware(Connector connector, RemoteInfo initialRemoteInfo) throws Exception {
+        this(connector, initialRemoteInfo, Executors::newFixedThreadPool);
+    }
+
+    public LeaderlessMiddleware(Connector connector, RemoteInfo initialRemoteInfo, Function<Integer, ExecutorService> poolFactory) throws Exception {
+        this.poolFactory = poolFactory;
+        Replica initialReplica = connector.Connect(initialRemoteInfo);
+        ClusterInfo clusterInfo = initialReplica.GetClusterInfo();
+        RemoteInfo[] remoteInfos = clusterInfo.getRemoteInfos();
+        this.stubs = new ArrayList<>(remoteInfos.length);
         for (RemoteInfo remoteInfo : remoteInfos) {
             this.stubs.add(connector.Connect(remoteInfo));
         }
-        this.r = r;
-        this.w = w;
+        this.r = clusterInfo.getR();
+        this.w = clusterInfo.getW();
     }
 
     @Override
@@ -53,7 +57,7 @@ public class LeaderlessMiddleware implements Middleware {
         final Value value = new Value(versioning, v);
 
         Collections.shuffle(this.stubs);
-        ExecutorService pool = Executors.newFixedThreadPool(this.w);
+        ExecutorService pool = this.poolFactory.apply(this.w);
         Future<VoteMessage>[] futures = new Future[this.w];
 
         // -> send prepare to selected replicas
@@ -87,7 +91,7 @@ public class LeaderlessMiddleware implements Middleware {
 
     private Value read(String k) throws Exception {
         Collections.shuffle(this.stubs);
-        ExecutorService pool = Executors.newFixedThreadPool(this.r);
+        ExecutorService pool = this.poolFactory.apply(this.r);
         Future<Value>[] futures = new Future[this.r];
         // -> send read
         for (int i = 0; i < this.r; i++) {

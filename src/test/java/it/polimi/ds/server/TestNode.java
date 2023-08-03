@@ -11,7 +11,7 @@ import static it.polimi.ds.rmi.VoteMessage.MessageType.COMMIT;
 public class TestNode {
     @Test
     public void TestCommit() {
-        Node node = new Node();
+        Node node = new Node(null);
 
         Value value = new Value(new Value.Versioning(1), "value");
         VoteMessage message = node.Prepare("key", value);
@@ -25,7 +25,7 @@ public class TestNode {
 
     @Test
     public void TestMultipleClients() {
-        Node node = new Node();
+        Node node = new Node(null);
 
         Value value1 = new Value(new Value.Versioning(1), "1");
         VoteMessage message1 = node.Prepare("x", value1);

@@ -1,5 +1,7 @@
 package it.polimi.ds.client;
 
+import it.polimi.ds.Value;
+import it.polimi.ds.rmi.ClusterInfo;
 import it.polimi.ds.rmi.RemoteInfo;
 import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.server.Node;
@@ -7,19 +9,24 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 public class TestClient {
     @Test
     public void TestGet() {
-        RemoteInfo[] remoteInfos = {
-            new RemoteInfo("A", ""),
-            new RemoteInfo("B", ""),
-            new RemoteInfo("C", "")
-        };
-        Connector mockConnector = buildMockConnector(remoteInfos);
+        ClusterInfo clusterInfo = new ClusterInfo(new RemoteInfo[]{
+                new RemoteInfo("A", ""),
+                new RemoteInfo("B", ""),
+                new RemoteInfo("C", "")
+        }, 2, 2);
+        Connector mockConnector = buildMockConnector(clusterInfo);
 
         try {
-            Middleware middleware = new LeaderlessMiddleware(mockConnector, remoteInfos, 2, 2);
+            Middleware middleware = new LeaderlessMiddleware(mockConnector, clusterInfo.getRemoteInfos()[0]);
 
             Assert.assertNull(middleware.Get("test"));
 
@@ -35,16 +42,16 @@ public class TestClient {
 
     @Test
     public void TestMultipleClients() {
-        RemoteInfo[] remoteInfos = {
-            new RemoteInfo("A", ""),
-            new RemoteInfo("B", ""),
-            new RemoteInfo("C", "")
-        };
-        Connector mockConnector = buildMockConnector(remoteInfos);
+        ClusterInfo clusterInfo = new ClusterInfo(new RemoteInfo[]{
+                new RemoteInfo("A", ""),
+                new RemoteInfo("B", ""),
+                new RemoteInfo("C", "")
+        }, 2, 2);
+        Connector mockConnector = buildMockConnector(clusterInfo);
 
         try {
-            Middleware middleware1 = new LeaderlessMiddleware(mockConnector, remoteInfos, 2, 2);
-            Middleware middleware2 = new LeaderlessMiddleware(mockConnector, remoteInfos, 2, 2);
+            Middleware middleware1 = new LeaderlessMiddleware(mockConnector, clusterInfo.getRemoteInfos()[0]);
+            Middleware middleware2 = new LeaderlessMiddleware(mockConnector, clusterInfo.getRemoteInfos()[1]);
             Thread thread1 = new Thread(() -> {
                 try {
                     if (middleware1.Put("x", "a")) {
@@ -90,10 +97,48 @@ public class TestClient {
         }
     }
 
-    private Connector buildMockConnector(RemoteInfo[] remoteInfos) {
-        HashMap<RemoteInfo,Replica> replicaMap = new HashMap<>();
-        for (RemoteInfo remoteInfo: remoteInfos) {
-            replicaMap.put(remoteInfo, new Node());
+    @Test
+    public void TestRepair() {
+        ClusterInfo clusterInfo = new ClusterInfo(new RemoteInfo[]{
+                new RemoteInfo("A", ""),
+                new RemoteInfo("B", ""),
+                new RemoteInfo("C", "")
+        }, 3, 2);
+        Connector mockConnector = buildMockConnector(clusterInfo);
+
+        AtomicReference<ExecutorService> lastPool = new AtomicReference<>();
+        Function<Integer, ExecutorService> poolFactory = (n) -> {
+            ExecutorService pool = Executors.newFixedThreadPool(n);
+            lastPool.set(pool);
+            return pool;
+        };
+
+        try {
+            Middleware middleware = new LeaderlessMiddleware(mockConnector, clusterInfo.getRemoteInfos()[0], poolFactory);
+
+            Assert.assertTrue(middleware.Put("key", "value"));
+            // Get will read+repair and set lastPool
+            middleware.Get("key");
+
+            lastPool.get().shutdown();
+            Assert.assertTrue("test timeout after 10 seconds",
+                    lastPool.get().awaitTermination(10, TimeUnit.SECONDS));
+
+            for (RemoteInfo remoteInfo : clusterInfo.getRemoteInfos()) {
+                Replica replica = mockConnector.Connect(remoteInfo);
+                Value value = replica.Read("key");
+                Assert.assertNotNull(value);
+                Assert.assertEquals("value", value.getValue());
+            }
+        } catch (Exception e) {
+            Assert.fail("unexpected exception: " + e.getMessage());
+        }
+    }
+
+    private Connector buildMockConnector(ClusterInfo clusterInfo) {
+        HashMap<RemoteInfo, Replica> replicaMap = new HashMap<>();
+        for (RemoteInfo remoteInfo : clusterInfo.getRemoteInfos()) {
+            replicaMap.put(remoteInfo, new Node(clusterInfo));
         }
         return new MockConnector(replicaMap);
     }
