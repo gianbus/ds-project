@@ -1,5 +1,7 @@
 package it.polimi.ds.rmi;
 
+import java.util.ArrayList;
+
 public class ClusterInfo {
     private final RemoteInfo[] remoteInfos;
     private final int r;
@@ -21,6 +23,14 @@ public class ClusterInfo {
 
     public int getW() {
         return w;
+    }
+
+    public ArrayList<String> getRegistryNames() {
+        ArrayList<String> registryNames = new ArrayList<>();
+        for (RemoteInfo ri : remoteInfos) {
+            registryNames.add(ri.getRegistryName());
+        }
+        return registryNames;
     }
 
     //dummyConstructor

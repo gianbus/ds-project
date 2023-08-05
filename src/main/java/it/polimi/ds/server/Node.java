@@ -6,12 +6,15 @@ import it.polimi.ds.rmi.ClusterInfo;
 import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.rmi.VoteMessage;
 
+import java.io.File;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.UUID;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static it.polimi.ds.rmi.VoteMessage.MessageType.ABORT;
 import static it.polimi.ds.rmi.VoteMessage.MessageType.COMMIT;
@@ -103,12 +106,15 @@ public class Node implements Replica {
     public static void main(String[] args) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            mapper.setVisibilityChecker(VisibilityChecker.Std.defaultInstance().withFieldVisibility(JsonAutoDetect.Visibility.ANY));
             
             String configurationPath = (args.length < 1) ? null : args[0];
-            assert configurationPath != null : "You neeed to specify a configuration path!";
-            
+            if(configurationPath == null) throw new IllegalArgumentException("You neeed to specify a configuration path!");
+
+            String registryName = (args.length < 2) ? null : args[1];
+            if(registryName == null) throw new IllegalArgumentException("You neeed to specify a registry name!");
+
             ClusterInfo clusterInfo = mapper.readValue(new File(configurationPath), ClusterInfo.class);
+            if(!clusterInfo.getRegistryNames().contains(registryName)) throw new IllegalArgumentException("The registry name specified is incorrect");
 
             Node node = new Node(clusterInfo);
             Replica stub = (Replica) UnicastRemoteObject.exportObject(node, 0);
@@ -118,6 +124,7 @@ public class Node implements Replica {
             registry.bind(registryName, stub);
 
             System.err.println("Node ready");
+            
         } catch (Exception e) {
             System.err.println("Node Exception: " + e);
             e.printStackTrace();
