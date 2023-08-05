@@ -1,6 +1,8 @@
 package it.polimi.ds.rmi;
 
-public class RemoteInfo {
+import java.io.Serializable;
+
+public class RemoteInfo implements Serializable{
     private final String host;
     private final String registryName;
 

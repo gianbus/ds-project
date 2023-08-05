@@ -1,8 +1,9 @@
 package it.polimi.ds.rmi;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class ClusterInfo {
+public class ClusterInfo implements Serializable{
     private final RemoteInfo[] remoteInfos;
     private final int r;
     private final int w;

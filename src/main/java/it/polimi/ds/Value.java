@@ -1,10 +1,11 @@
 package it.polimi.ds;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class Value {
+public class Value implements Serializable {
     
-    public static class Versioning {
+    public static class Versioning implements Serializable{
         private final long version;
         private final long timestamp;
 

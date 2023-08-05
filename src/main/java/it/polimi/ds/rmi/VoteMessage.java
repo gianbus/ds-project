@@ -1,6 +1,8 @@
 package it.polimi.ds.rmi;
 
-public class VoteMessage {
+import java.io.Serializable;
+
+public class VoteMessage implements Serializable{
     public enum MessageType {
         COMMIT,
         ABORT
