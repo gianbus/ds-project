@@ -6,6 +6,7 @@ import it.polimi.ds.rmi.RemoteInfo;
 import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.rmi.VoteMessage;
 
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.Callable;
@@ -146,5 +147,16 @@ public class LeaderlessMiddleware implements Middleware {
             }
             return null;
         };
+    }
+
+    //TODO is it useful?
+    public void close() {
+        for (Replica stub : stubs) {
+            try {
+                UnicastRemoteObject.unexportObject(stub, true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
