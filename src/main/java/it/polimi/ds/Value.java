@@ -2,6 +2,7 @@ package it.polimi.ds;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Random;
 
 public class Value implements Serializable {
     
@@ -11,7 +12,8 @@ public class Value implements Serializable {
 
         public Versioning(long version) {
             this.version = version;
-            this.timestamp = new Date().getTime();
+            this.timestamp = new Random().nextLong();
+            // this.timestamp = new Date().getTime();
         }
 
         public boolean greaterThan(Versioning other) {

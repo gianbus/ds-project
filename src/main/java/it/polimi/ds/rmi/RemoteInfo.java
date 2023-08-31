@@ -2,7 +2,7 @@ package it.polimi.ds.rmi;
 
 import java.io.Serializable;
 
-public class RemoteInfo implements Serializable{
+public class RemoteInfo implements Serializable {
     private final String host;
     private final String registryName;
 
@@ -19,7 +19,7 @@ public class RemoteInfo implements Serializable{
         return registryName;
     }
 
-    //dummyConstructor
+    // empty constructor for json library
     public RemoteInfo(){
         this.host = "";
         this.registryName = "";

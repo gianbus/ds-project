@@ -34,7 +34,7 @@ public class ClusterInfo implements Serializable{
         return registryNames;
     }
 
-    //dummyConstructor
+    // empty constructor for json library
     public ClusterInfo(){
         this.r = -1;
         this.w = -1;

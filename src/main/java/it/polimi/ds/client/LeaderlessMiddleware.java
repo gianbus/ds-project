@@ -82,6 +82,9 @@ public class LeaderlessMiddleware implements Middleware {
             futures[i] = pool.submit(globalVote(this.stubs.get(i), result, transactionIDs[i]));
         }
 
+        // no more tasks to submit: close pool
+        pool.shutdown();
+
         // <- wait for ack
         for (int i = 0; i < this.w; i++) {
             futures[i].get();
@@ -119,6 +122,9 @@ public class LeaderlessMiddleware implements Middleware {
             }
             // no need to wait for results
         }
+
+        // no more tasks to submit: close pool
+        pool.shutdown();
 
         return mostRecent;
     }

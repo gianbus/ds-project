@@ -5,7 +5,11 @@ import it.polimi.ds.rmi.VoteMessage;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static it.polimi.ds.rmi.VoteMessage.MessageType.ABORT;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import static it.polimi.ds.rmi.VoteMessage.MessageType.COMMIT;
 
 public class TestNode {
@@ -35,15 +39,26 @@ public class TestNode {
         VoteMessage message2 = node.Prepare("y", value2);
         Assert.assertEquals(COMMIT, message2.getType());
 
+        // this will be blocked, run on a new thread
         Value value3 = new Value(new Value.Versioning(2), "3");
-        VoteMessage message3 = node.Prepare("x", value3);
-        Assert.assertEquals(ABORT, message3.getType());
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Callable<VoteMessage> callable = () -> node.Prepare("x", value3);
+        Future<VoteMessage> future = executor.submit(callable);
 
-        node.Commit(message2.getTransactionID());
-        node.Abort(message1.getTransactionID());
-        node.Abort(message3.getTransactionID());
+        try {
+            node.Commit(message2.getTransactionID());
+            node.Abort(message1.getTransactionID());
 
-        Assert.assertNull(node.Read("x"));
+            executor.shutdown();
+            VoteMessage message3 = future.get();
+            Assert.assertEquals(COMMIT, message2.getType());
+
+            node.Commit(message3.getTransactionID());
+        } catch (Exception e) {
+            Assert.fail("unexpected exception: " + e.getMessage());
+        }
+
+        Assert.assertEquals(value3, node.Read("x"));
         Assert.assertEquals(value2, node.Read("y"));
     }
 }

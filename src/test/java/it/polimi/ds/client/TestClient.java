@@ -135,6 +135,57 @@ public class TestClient {
         }
     }
 
+    @Test
+    public void TestQueue() {
+        int nMiddlewares = 20;
+        int nRounds = 100;
+        int nReplicas = 10;
+        int r = 6;
+        int w = 6;
+        RemoteInfo[] remoteInfos = new RemoteInfo[nReplicas];
+
+        for (int i = 0; i < nReplicas; i++) {
+            remoteInfos[i] = new RemoteInfo(String.valueOf(i), "");
+        }
+
+        ClusterInfo clusterInfo = new ClusterInfo(remoteInfos, r, w);
+        Connector mockConnector = buildMockConnector(clusterInfo);
+
+        try {
+            Thread[] threads = new Thread[nMiddlewares];
+            Middleware[] middlewares = new Middleware[nMiddlewares];
+
+            for (int i = 0; i < nMiddlewares;i++) {
+                middlewares[i] = new LeaderlessMiddleware(mockConnector, clusterInfo.getRemoteInfos()[i % clusterInfo.getRemoteInfos().length]);
+            }
+
+            for (int i = 0; i < nRounds; i++) {
+                AtomicReference<Integer> success = new AtomicReference<>(0);
+
+                for (int j = 0; j < nMiddlewares; j++) {
+                    int finalJ = j;
+                    threads[j] = new Thread(() -> {
+                        try {
+                            boolean outcome = middlewares[finalJ].Put("x", String.valueOf(finalJ));
+                            success.accumulateAndGet(outcome ? 1 : 0, Integer::sum);
+                        } catch (Exception e) {
+                            Assert.fail("unexpected exception: " + e.getMessage());
+                        }
+                    });
+                    threads[j].start();
+                }
+
+                for (int j = 0; j < nMiddlewares; j++) {
+                    threads[j].join();
+                }
+
+                Assert.assertTrue(success.get() >= 1);
+            }
+        } catch (Exception e) {
+            Assert.fail("unexpected exception: " + e.getMessage());
+        }
+    }
+
     private Connector buildMockConnector(ClusterInfo clusterInfo) {
         HashMap<RemoteInfo, Replica> replicaMap = new HashMap<>();
         for (RemoteInfo remoteInfo : clusterInfo.getRemoteInfos()) {
