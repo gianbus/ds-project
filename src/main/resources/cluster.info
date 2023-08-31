@@ -1,17 +1,17 @@
 {
-	"w": 3,
-	"r": 3,
+	"w": 2,
+	"r": 2,
 	"remoteInfos": [
 		{
-			"host": "localhost",
+			"host": "192.168.1.18",
 			"registryName": "myName1"
 		},
 		{
-			"host": "localhost",
+			"host": "192.168.1.4",
 			"registryName": "myName2"
 		},
 		{
-			"host": "localhost",
+			"host": "192.168.1.4",
 			"registryName": "myName3"
 		}
 	]

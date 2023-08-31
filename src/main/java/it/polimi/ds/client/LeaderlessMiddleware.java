@@ -154,15 +154,4 @@ public class LeaderlessMiddleware implements Middleware {
             return null;
         };
     }
-
-    //TODO is it useful?
-    public void close() {
-        for (Replica stub : stubs) {
-            try {
-                UnicastRemoteObject.unexportObject(stub, true);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
 }

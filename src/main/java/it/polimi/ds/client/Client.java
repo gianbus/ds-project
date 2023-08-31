@@ -7,9 +7,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Client {
-    private Client() {
-    }
-
     public static void main(String[] args) {
         try {
             String initialHost = (args.length < 1) ? null : args[0];
@@ -60,7 +57,6 @@ public class Client {
             } while (!input.equalsIgnoreCase("exit"));
 
             scanner.close();
-            middleware.close();
             System.out.println("Bye.");
             System.exit(0);
 

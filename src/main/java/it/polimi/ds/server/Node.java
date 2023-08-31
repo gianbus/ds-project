@@ -8,6 +8,7 @@ import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.rmi.VoteMessage;
 
 import java.io.File;
+import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -206,6 +207,7 @@ public class Node implements Replica {
     }
 
     public static void main(String[] args) {
+        Node node = null;
         try {
             ObjectMapper mapper = new ObjectMapper();
 
@@ -216,22 +218,34 @@ public class Node implements Replica {
             String registryName = (args.length < 2) ? null : args[1];
             if (registryName == null) throw new IllegalArgumentException("You need to specify a registry name!");
 
+            System.setProperty("java.rmi.server.hostname", "192.168.1.18");
+
             ClusterInfo clusterInfo = mapper.readValue(new File(configurationPath), ClusterInfo.class);
             if (!clusterInfo.getRegistryNames().contains(registryName))
                 throw new IllegalArgumentException("The registry name specified is incorrect");
 
-            Node node = new Node(clusterInfo);
+            node = new Node(clusterInfo);
             Replica stub = (Replica) UnicastRemoteObject.exportObject(node, 0);
 
             // Binding the stub
             Registry registry = LocateRegistry.getRegistry();
-            registry.bind(registryName, stub);
+            registry.rebind(registryName, stub);
 
             System.err.println("Node ready");
-
         } catch (Exception e) {
             System.err.println("Node Exception: " + e);
             e.printStackTrace();
         }
+
+        Node finalNode = node;
+        Thread printingHook = new Thread(() -> {
+            try {
+                UnicastRemoteObject.unexportObject(finalNode, true);
+                System.out.println("Node stopped");
+            } catch (NoSuchObjectException e) {
+                e.printStackTrace();
+            }
+        });
+        Runtime.getRuntime().addShutdownHook(printingHook);
     }
 }
