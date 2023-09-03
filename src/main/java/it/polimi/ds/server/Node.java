@@ -218,8 +218,6 @@ public class Node implements Replica {
             String registryName = (args.length < 2) ? null : args[1];
             if (registryName == null) throw new IllegalArgumentException("You need to specify a registry name!");
 
-            System.setProperty("java.rmi.server.hostname", "192.168.1.18");
-
             ClusterInfo clusterInfo = mapper.readValue(new File(configurationPath), ClusterInfo.class);
             if (!clusterInfo.getRegistryNames().contains(registryName))
                 throw new IllegalArgumentException("The registry name specified is incorrect");

@@ -6,7 +6,6 @@ import it.polimi.ds.rmi.RemoteInfo;
 import it.polimi.ds.rmi.Replica;
 import it.polimi.ds.rmi.VoteMessage;
 
-import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.Callable;
