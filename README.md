@@ -1,4 +1,4 @@
-# ds-project - Quorum-based replicated datastore
+# ds-project: A quorum-based replicated datastore
 
 This is the implementation of a distributed key-value store that accepts two operations from clients:
 * put(k, v) inserts/updates value v for key k;
