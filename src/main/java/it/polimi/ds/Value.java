@@ -12,7 +12,6 @@ public class Value implements Serializable {
         public Versioning(long version) {
             this.version = version;
             this.timestamp = new Random().nextLong();
-            // this.timestamp = new Date().getTime();
         }
 
         public boolean greaterThan(Versioning other) {

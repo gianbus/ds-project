@@ -86,7 +86,6 @@ public class Node implements Replica {
             ArrayList<QueueElement> queue = this.queueByKey.get(t.getKey());
             if (queue.size() >= this.queueMaxSize) {
                 // abort if queue for this key is full
-                // TODO : maybe consider global queue instead of a queue for each key
                 return null;
             }
 
